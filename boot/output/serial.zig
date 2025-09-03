@@ -13,6 +13,9 @@ const Status = uefi.Status;
 const Guid = uefi.Guid;
 const io = @import("rouge").io;
 
+const NO_PARITY = 0;
+const STOP_BITS_1 = 0;
+
 const EFI_SERIAL_IO_PROTOCOL_GUID = Guid{
     .time_low = 0xBB25CF6F,
     .time_mid = 0xF1D4,
@@ -42,10 +45,12 @@ pub const Serial = struct {
 
     pub fn get() SerialError!Serial {
         var serial_io: *EfiSerialIOProtocol = undefined;
-        const status = uefi.system_table.boot_services.?._locateProtocol(&EFI_SERIAL_IO_PROTOCOL_GUID, null, &serial_io);
+        var status = uefi.system_table.boot_services.?._locateProtocol(&EFI_SERIAL_IO_PROTOCOL_GUID, null, &serial_io);
         if (status != uefi.Status.SUCCESS) {
             return SerialError.failedToLocateProtocol;
         }
+
+        status = serial_io.setAttributes(serial_io, 115200, 16, 0, NO_PARITY, 8, STOP_BITS_1);
         return Serial{serial_io};
     }
 
