@@ -1,0 +1,4 @@
+.zig-cache
+out
+zig-out
+disk.img
