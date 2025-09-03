@@ -14,20 +14,47 @@
 const std = @import("std");
 const uefi = std.os.uefi;
 
+/// Maximum length for UEFI string conversion
+const MAX_LEN: comptime_int = 512;
+
+/// Static buffer for UEFI string conversion
+var u16_str: [MAX_LEN]u16 = undefined;
+
 /// Converts a UTF-8 string to a UEFI-compatible UTF-16 string.
-pub fn stringToUefi(comptime str: [*:0]const u8) [std.mem.len(str):0]u16 {
-    var u16_str: [std.mem.len(str):0]u16 = undefined;
-    for (0..std.mem.len(str)) |i| {
+/// Uses a static buffer, so subsequent calls will overwrite previous results.
+pub fn stringToUefi(str: [*:0]const u8) [*:0]u16 {
+    const str_len = std.mem.len(str);
+    if (str_len >= MAX_LEN) {
+        u16_str[0] = 0; // Return empty string if too long
+        return @ptrCast(&u16_str);
+    }
+
+    for (0..str_len) |i| {
         u16_str[i] = @as(u16, str[i]);
     }
-    u16_str[std.mem.len(str)] = 0; // Null-terminate the string
-    return u16_str;
+    u16_str[str_len] = 0; // Null-terminate
+
+    return @ptrCast(&u16_str);
 }
 
 /// Prints a message to the UEFI console.
-pub fn print(comptime message: [*:0]const u8) void {
+pub fn print(message: [*:0]const u8) void {
     const con_out = uefi.system_table.con_out.?;
-    _ = con_out.outputString(&stringToUefi(message)) catch {};
+    var pos = std.mem.len(message);
+    var trim_back: usize = 0;
+    while (pos > 0) : (pos -= 1) {
+        if (message[pos - 1] == '\n' or message[pos - 1] == '\r' or message[pos - 1] == ' ') {
+            trim_back += 1;
+        } else {
+            break;
+        }
+    }
+    for (0..std.mem.len(message) - trim_back) |i| {
+        var buffer: [2]u16 = undefined;
+        buffer[0] = @as(u16, message[i]);
+        buffer[1] = 0; // Null-terminate
+        _ = con_out.outputString(@ptrCast(&buffer)) catch {};
+    }
 }
 
 /// Resets the UEFI console.

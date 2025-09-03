@@ -6,46 +6,39 @@
 // Description: Format utilities for the UEFI application
 // Copyright (c) 2025 Maxims Enterprise
 //
-
 const std = @import("std");
 
-pub fn hexadecimal(value: u64, buffer: []u8) []u8 {
-    if (buffer.len < 18) return buffer[0..0];
-
+pub fn hexadecimal(value: u64, comptime max_length: usize) [max_length:0]u8 {
+    var buffer: [max_length:0]u8 = undefined;
+    if (buffer.len < 18) return buffer;
     buffer[0] = '0';
     buffer[1] = 'x';
-
     const hex_chars = "0123456789ABCDEF";
     var i: usize = 17;
     var val = value;
-
     while (i > 1) : (i -= 1) {
         buffer[i] = hex_chars[val & 0xF];
         val >>= 4;
     }
-
-    return buffer[0..18];
+    buffer[18] = 0; // Null-terminate
+    return buffer;
 }
 
-pub fn decimal(value: u64, buffer: []u8) []u8 {
-    if (buffer.len == 0) return buffer[0..0];
+pub fn decimal(value: u64, comptime max_length: usize) [max_length:0]u8 {
+    var buffer: [max_length:0]u8 = undefined;
     if (value == 0) {
         buffer[0] = '0';
-        return buffer[0..1];
+        return buffer;
     }
-
     var val = value;
     var len: usize = 0;
-
     // Count digits
     var temp = val;
     while (temp > 0) {
         temp /= 10;
         len += 1;
     }
-
-    if (len > buffer.len) return buffer[0..0];
-
+    if (len > buffer.len) return buffer;
     // Fill buffer from right to left
     var i = len;
     while (val > 0) {
@@ -53,39 +46,33 @@ pub fn decimal(value: u64, buffer: []u8) []u8 {
         buffer[i] = @intCast((val % 10) + '0');
         val /= 10;
     }
-
-    return buffer[0..len];
+    buffer[len] = 0; // Null-terminate
+    return buffer;
 }
 
-pub fn string(comptime template: []const u8, args: anytype, buffer: []u8) []u8 {
+pub fn string(comptime template: []const u8, args: anytype, comptime max_length: usize) [max_length:0]u8 {
     var pos: usize = 0;
     var arg_index: usize = 0;
     var i: usize = 0;
+    var buffer: [max_length:0]u8 = undefined;
 
     while (i < template.len and pos < buffer.len) {
         if (template[i] == '{' and i + 1 < template.len and template[i + 1] == '}') {
             // Found placeholder
             if (arg_index < args.len) {
-                const arg = args[arg_index];
-                const T = @TypeOf(arg);
-
-                if (T == []const u8) {
-                    // String argument
-                    var j: usize = 0;
-                    while (j < arg.len and pos < buffer.len) {
-                        buffer[pos] = arg[j];
-                        pos += 1;
-                        j += 1;
-                    }
-                } else if (@typeInfo(T) == .Int) {
-                    // Integer argument - format as decimal
-                    var temp_buf: [32]u8 = undefined;
-                    const formatted = decimal(@intCast(arg), &temp_buf);
-                    var j: usize = 0;
-                    while (j < formatted.len and pos < buffer.len) {
-                        buffer[pos] = formatted[j];
-                        pos += 1;
-                        j += 1;
+                inline for (args, 0..) |arg, idx| {
+                    if (idx == arg_index) {
+                        const T = @TypeOf(arg);
+                        if (T == []const u8) {
+                            // String argument
+                            var j: usize = 0;
+                            while (j < arg.len and pos < buffer.len) {
+                                buffer[pos] = arg[j];
+                                pos += 1;
+                                j += 1;
+                            }
+                        }
+                        break;
                     }
                 }
                 arg_index += 1;
@@ -98,5 +85,10 @@ pub fn string(comptime template: []const u8, args: anytype, buffer: []u8) []u8 {
         }
     }
 
-    return buffer[0..pos];
+    while (pos < buffer.len) {
+        buffer[pos] = 0;
+        pos += 1;
+    }
+
+    return buffer;
 }
