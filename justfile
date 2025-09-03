@@ -36,3 +36,9 @@ lint:
     zig build test-lint
     zig build lint
     @echo "All Tests Passed"
+
+check:
+    zig fmt --check .
+    zig build lint
+    zig build test-lint
+    zig build test
