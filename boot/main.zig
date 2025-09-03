@@ -14,10 +14,17 @@ const std = @import("std");
 const uefi = std.os.uefi;
 const console = @import("rouge").console;
 const time = @import("rouge").time;
+const serial = @import("rouge").serial;
 
 /// Main entry point for the Boot Manager
 pub fn main() void {
     console.clear();
     console.print("Hello, World!");
+    const serial_out = serial.Serial.get() catch |err| {
+        console.print("Failed to get serial output: {}", .{err});
+        return;
+    };
+
+    serial_out.write("Hello from Serial!\n");
     time.TimeDelay.fromSeconds(5).wait();
 }
