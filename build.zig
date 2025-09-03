@@ -1,9 +1,13 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    const target = b.resolveTargetQuery(.{ .abi = .msvc, .cpu_arch = .x86_64, .os_tag = .uefi });
+    const target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .uefi });
     const native_target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+
+    const lib = b.createModule(.{
+        .root_source_file = b.path("boot/lib.zig"),
+    });
 
     const exe = b.addExecutable(.{
         .name = "rouge",
@@ -14,6 +18,8 @@ pub fn build(b: *std.Build) void {
         }),
         .use_llvm = true,
     });
+
+    exe.root_module.addImport("rouge", lib);
 
     exe.subsystem = .EfiApplication;
     exe.is_linking_libc = false;
@@ -27,6 +33,8 @@ pub fn build(b: *std.Build) void {
         }),
         .use_llvm = true,
     });
+
+    tests.root_module.addImport("rouge", lib);
 
     b.installArtifact(exe);
 
