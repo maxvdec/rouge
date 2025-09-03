@@ -11,6 +11,7 @@ pack:
     rm -rf /Volumes/ROUGE/*
     cp -r out/* /Volumes/ROUGE
     hdiutil detach /Volumes/ROUGE
+    echo "Image Successfully Packaged"
 
 build:
     zig build
@@ -30,3 +31,8 @@ run:
 clean:
     rm -rf out
     rm -rf zig-out
+
+lint:
+    zig build test-lint
+    zig build lint
+    @echo "All Tests Passed"

@@ -30,6 +30,12 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(exe);
 
+    const lint_step = b.step("lint", "Run static analysis");
+    lint_step.dependOn(&exe.step);
+
+    const test_lint_step = b.step("test-lint", "Run static analysis on tests");
+    test_lint_step.dependOn(&tests.step);
+
     const run_tests = b.addRunArtifact(tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_tests.step);
