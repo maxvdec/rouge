@@ -11,3 +11,5 @@
 //! It also contains the main utilties for graphics and input handling.
 pub const time = @import("time.zig");
 pub const console = @import("output/console.zig");
+pub const io = @import("utils/io.zig");
+pub const serial = @import("output/serial.zig");
