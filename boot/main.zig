@@ -16,7 +16,7 @@ const console = @import("rouge").console;
 const time = @import("rouge").time;
 const serial = @import("rouge").serial;
 const format = @import("rouge").format;
-const graphics = @import("graphics/graphics.zig");
+const graphics = @import("rouge").graphics;
 
 /// Main entry point for the Boot Manager
 pub fn main() void {
@@ -25,14 +25,17 @@ pub fn main() void {
     serial.init(boot_services) catch {};
     serial.print("Hello, World!\n");
 
-    time.TimeDelay.fromSeconds(5).wait();
-    var out = graphics.Graphics.get() catch |err| {
-        std.debug.print("Failed to get graphics: {}\n", .{err});
+    serial_out.write("Hello from Serial!\n") catch |err| {
+        const result = format.string("Failed to write to serial: {}", .{err}, 100);
+        console.print(&result);
         return;
     };
-    out.graphicsOutput.setMode(0);
+    var out = graphics.Graphics.get() catch {
+        return;
+    };
+    out.graphicsOutput.setMode(0) catch {
+        return;
+    };
 
-    const boot_services = uefi.system_table.boot_services.?;
-
-    _ = boot_services.stall(5 * 1000 * 1000) catch {};
+    time.TimeDelay.fromSeconds(5).wait();
 }
