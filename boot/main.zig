@@ -8,7 +8,7 @@
 //
 
 //! Main entry point for the UEFI application
-//! This module contains the basic functions that setup everything the boot manager needs.
+//! The basic functions that setup everything the boot manager needs.
 //! It initializes every bit that the UEFI system needs.
 const std = @import("std");
 const uefi = std.os.uefi;
@@ -19,5 +19,5 @@ const time = @import("rouge").time;
 pub fn main() void {
     console.clear();
     console.print("Hello, World!");
-    time.wait(time.TimeDelay.fromSeconds(5));
+    time.TimeDelay.fromSeconds(5).wait();
 }

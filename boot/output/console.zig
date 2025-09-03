@@ -7,7 +7,7 @@
 // Copyright (c) 2025 Maxims Enterprise
 //
 
-//! This module handles console output for the UEFI bindings
+//! Console output for the UEFI bindings
 //! It provides functions for printing messages to the console.
 //! It also includes utilities for converting strings to UEFI-compatible formats.
 
@@ -24,16 +24,19 @@ pub fn stringToUefi(comptime str: [*:0]const u8) [std.mem.len(str):0]u16 {
     return u16_str;
 }
 
+/// Prints a message to the UEFI console.
 pub fn print(comptime message: [*:0]const u8) void {
     const con_out = uefi.system_table.con_out.?;
     _ = con_out.outputString(&stringToUefi(message)) catch {};
 }
 
+/// Resets the UEFI console.
 pub fn reset() void {
     const con_out = uefi.system_table.con_out.?;
     _ = con_out.reset(false) catch {};
 }
 
+/// Clears the UEFI console.
 pub fn clear() void {
     const con_out = uefi.system_table.con_out.?;
     _ = con_out.clearScreen() catch {};
