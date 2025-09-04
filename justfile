@@ -17,8 +17,23 @@ build:
     zig build
     just pack
 
+build-debug:
+    zig build -Doptimize=Debug
+    just pack
+
 test:
     zig build test
+
+debug:
+    just build-debug
+    qemu-system-x86_64 \
+        -drive if=pflash,format=raw,readonly=on,file={{ovmf_prefix}}/share/OVMF/OvmfX64/OVMF_CODE.fd \
+        -drive if=pflash,format=raw,file={{ovmf_prefix}}/share/OVMF/OvmfX64/OVMF_VARS.fd \
+        -m 512M \
+        -drive format=raw,file=disk.img \
+        -serial stdio \
+        -gdb tcp::1234 \
+        -S
 
 run:
     just build

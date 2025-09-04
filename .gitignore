@@ -2,3 +2,4 @@
 out
 zig-out
 disk.img
+.gdbinit

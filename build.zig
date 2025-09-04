@@ -19,6 +19,11 @@ pub fn build(b: *std.Build) void {
         .use_llvm = true,
     });
 
+    exe.root_module.strip = false;
+    if (optimize == .Debug) {
+        exe.root_module.omit_frame_pointer = false;
+    }
+
     exe.root_module.addImport("rouge", lib);
 
     exe.subsystem = .EfiApplication;

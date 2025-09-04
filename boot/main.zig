@@ -19,7 +19,6 @@ const format = @import("rouge").format;
 
 /// Main entry point for the Boot Manager
 pub fn main() void {
-    console.clear();
     console.print("Hello, World!");
     const boot_services = uefi.system_table.boot_services.?;
     var serial_out = serial.Serial.get(boot_services) catch |err| {
