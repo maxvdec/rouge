@@ -25,7 +25,7 @@ pub const Capabilities = enum {
 
 pub const Graphics = struct {
     graphicsOutput: *uefi.protocol.GraphicsOutput,
-    modes: []Mode,
+    modes: [*]Mode,
 
     const Self = @This();
 
@@ -36,65 +36,72 @@ pub const Graphics = struct {
         if (gop) |protocol| {
             return Graphics{
                 .graphicsOutput = protocol,
-                .modes = &[_]Mode{} ** @as(usize, protocol.mode.max_mode),
+                .modes = undefined,
             };
         } else {
             return error.GraphicsOutputNotFound;
         }
     }
 
+    pub fn destroy(self: *Self) !void {
+        const boot_services = uefi.system_table.boot_services.?;
+        try boot_services.freePool(self.modes);
+    }
+
     pub fn queryModes(self: *Self) void {
-        const mode_count = self.graphicsOutput.mode.?.max_mode;
-        for (mode_count) |i| {
-            const mode = self.graphicsOutput.queryMode(self.graphicsOutput, i) catch continue;
-            self.modes[i] = Mode{
-                .id = i,
-                .info = mode,
-            };
+        const mode_count = self.graphicsOutput.mode.max_mode;
+        var buffer = uefi.system_table.boot_services.?.allocatePool(.loader_data, @sizeOf(Mode) * mode_count) catch return;
+        self.modes = @ptrCast(&buffer);
+        for (0..mode_count) |i| {
+            const mode = self.graphicsOutput.queryMode(@intCast(i)) catch continue;
+            self.modes[i] = Mode{ .id = @intCast(i), .info = mode, .rating = 0, .cpu_rating = 0 };
         }
     }
 
     pub fn selectPreferredMode(self: *Self, capabilities: Capabilities) !void {
-        for (self.modes) |mode| {
+        for (0..self.graphicsOutput.mode.max_mode) |i| {
+            var mode = self.modes[i];
             mode.rating = 0;
             mode.cpu_rating = 0;
-            mode.rating += mode.info.resolution_horizontal * mode.info.resolution_vertical;
-            mode.cpu_rating += mode.info.resolution_horizontal * mode.info.resolution_vertical;
+            mode.rating += mode.info.horizontal_resolution * mode.info.vertical_resolution;
+            mode.cpu_rating += mode.info.horizontal_resolution * mode.info.vertical_resolution;
             switch (mode.info.pixel_format) {
-                .PixelBlueGreenRedReserved8BitPerColor, .PixelRedGreenBlueReserved8BitPerColor => {
+                .blue_green_red_reserved_8_bit_per_color, .red_green_blue_reserved_8_bit_per_color => {
                     mode.rating += 1000;
                     mode.cpu_rating += 1000;
                 },
-                .PixelBitMask => {
+                .bit_mask => {
                     mode.rating += 500;
                     mode.cpu_rating += 2000;
                 },
-                .PixelBltOnly => {
+                .blt_only => {
                     mode.rating += 100;
                     mode.cpu_rating += 3000;
                 },
-                else => {},
             }
-            mode.rating += @as(i32, mode.info.pixels_per_scan_line);
-            mode.cpu_rating -= @as(i32, mode.info.pixels_per_scan_line);
+            mode.rating += @intCast(mode.info.pixels_per_scan_line);
+            mode.cpu_rating -= @intCast(mode.info.pixels_per_scan_line);
         }
 
         var best_mode: ?Mode = null;
 
         if (capabilities == .highest) {
-            for (self.modes) |mode| {
+            for (0..self.graphicsOutput.mode.max_mode) |i| {
+                const mode = self.modes[i];
                 if (best_mode == null or mode.rating > best_mode.?.rating) {
                     best_mode = mode;
                 }
             }
         } else if (capabilities == .cpu_friendly) {
-            for (self.modes) |mode| {
+            for (0..self.graphicsOutput.mode.max_mode) |i| {
+                const mode = self.modes[i];
                 if (best_mode == null or mode.cpu_rating > best_mode.?.cpu_rating) {
                     best_mode = mode;
                 }
             }
         } else if (capabilities == .lowest) {
-            for (self.modes) |mode| {
+            for (0..self.graphicsOutput.mode.max_mode) |i| {
+                const mode = self.modes[i];
                 if (best_mode == null or mode.rating < best_mode.?.rating) {
                     best_mode = mode;
                 }

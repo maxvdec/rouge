@@ -21,16 +21,9 @@ const graphics = @import("rouge").graphics;
 /// Main entry point for the Boot Manager
 pub fn main() void {
     console.print("Hello, World!");
-    const boot_services = uefi.system_table.boot_services.?;
-    serial.init(boot_services) catch {};
-    serial.print("Hello, World!\n");
 
-    serial_out.write("Hello from Serial!\n") catch |err| {
-        const result = format.string("Failed to write to serial: {}", .{err}, 100);
-        console.print(&result);
-        return;
-    };
     var out = graphics.Graphics.get() catch {
+        console.print("Failed to get Graphics Output Protocol\n");
         return;
     };
     out.queryModes();
@@ -39,8 +32,9 @@ pub fn main() void {
         return;
     };
 
-    for (out.modes) |mode| {
-        console.printFormatted("Mode {}: {}x{} @ {} bpp\n", .{ mode.id, mode.info.resolution_horizontal, mode.info.resolution_vertical, mode.info.pixel_format }, 100);
+    for (0..out.graphicsOutput.mode.max_mode) |i| {
+        const mode = out.modes[i];
+        console.printFormatted("Mode {}: {}x{} @ {} bpp\n", .{ mode.id, mode.info.horizontal_resolution, mode.info.vertical_resolution, mode.info.pixel_format }, 100);
         console.printFormatted("    Score: {}, CPU Score: {}\n", .{ mode.rating, mode.cpu_rating }, 100);
     }
 
