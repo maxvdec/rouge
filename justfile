@@ -31,9 +31,9 @@ debug:
         -drive if=pflash,format=raw,file={{ovmf_prefix}}/share/OVMF/OvmfX64/OVMF_VARS.fd \
         -m 512M \
         -drive format=raw,file=disk.img \
-        -serial stdio \
         -gdb tcp::1234 \
-        -S
+        -S \
+        -serial stdio
 
 run:
     just build
