@@ -6,8 +6,13 @@
 // Description: Format utilities for the UEFI application
 // Copyright (c) 2025 Maxims Enterprise
 //
+
+//! Simple formatting utilities for the UEFI application
+//! It provides functions to format numbers and strings into buffers.
+
 const std = @import("std");
 
+/// Formats a u64 value as a hexadecimal string.
 pub fn hexadecimal(value: u64, comptime max_length: usize) [max_length:0]u8 {
     var buffer: [max_length:0]u8 = undefined;
     if (buffer.len < 18) return buffer;
@@ -24,6 +29,7 @@ pub fn hexadecimal(value: u64, comptime max_length: usize) [max_length:0]u8 {
     return buffer;
 }
 
+/// Formats a u64 value as a decimal string.
 pub fn decimal(value: u64, comptime max_length: usize) [max_length:0]u8 {
     var buffer: [max_length:0]u8 = undefined;
     if (value == 0) {
@@ -50,6 +56,7 @@ pub fn decimal(value: u64, comptime max_length: usize) [max_length:0]u8 {
     return buffer;
 }
 
+/// Formats a string with placeholders `{}` replaced by provided arguments.
 pub fn string(comptime template: []const u8, args: anytype, comptime max_length: usize) [max_length:0]u8 {
     var pos: usize = 0;
     var arg_index: usize = 0;

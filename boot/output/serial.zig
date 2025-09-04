@@ -7,15 +7,22 @@
 // Copyright (c) 2025 Maxims Enterprise
 //
 
+//! Serial output functions for the UEFI application
+//! It allows sending and receiving data over a serial port.
+//! This is useful for debugging and logging purposes.
+
 const std = @import("std");
 const uefi = std.os.uefi;
 const Status = uefi.Status;
 const Guid = uefi.Guid;
 const io = @import("../utils/io.zig");
 
+/// No parity
 const NO_PARITY = 0;
+/// One stop bit
 const STOP_BITS_1 = 0;
 
+/// The GUID for the EFI Serial I/O Protocol
 const EFI_SERIAL_IO_PROTOCOL_GUID = Guid{
     .time_low = 0xBB25CF6F,
     .time_mid = 0xF1D4,
@@ -25,6 +32,7 @@ const EFI_SERIAL_IO_PROTOCOL_GUID = Guid{
     .node = .{ 0x00, 0x90, 0x27, 0x3F, 0xC1, 0xFD },
 };
 
+/// Representation of the EFI Serial I/O Protocol
 pub const EfiSerialIOProtocol = struct {
     const Self = @This();
 
@@ -36,13 +44,17 @@ pub const EfiSerialIOProtocol = struct {
     Read: *const fn (self: *Self, BufferSize: *u64, Buffer: [*]u8) uefi.Status,
 };
 
+/// Errors that can occur while working with the Serial protocol
 pub const SerialError = error{
     failedToLocateProtocol,
 };
 
+/// Represents a Serial port
 pub const Serial = struct {
+    /// The underlying EFI Serial I/O Protocol
     serial: *EfiSerialIOProtocol,
 
+    /// Initializes the Serial port with the given baud rate and settings.
     pub fn get(boot_services: *uefi.tables.BootServices) SerialError!Serial {
         var serial_io: ?*EfiSerialIOProtocol = undefined;
         var status = boot_services._locateProtocol(&EFI_SERIAL_IO_PROTOCOL_GUID, null, @ptrCast(&serial_io));
@@ -57,6 +69,7 @@ pub const Serial = struct {
         return Serial{ .serial = serial_io.? };
     }
 
+    /// Writes data to the Serial port.
     pub fn write(self: *Serial, data: []const u8) !void {
         var bytes_written: u64 = 0;
         const status = self.serial.Write(self.serial, @as(u64, data.len), @ptrCast(data.ptr), &bytes_written);
@@ -65,6 +78,7 @@ pub const Serial = struct {
         }
     }
 
+    /// Reads data from the Serial port into the provided buffer.
     pub fn read(self: *Serial, buffer: []u8) SerialError!u64 {
         var bytes_read: u64 = 0;
         const status = self.serial.Read(&bytes_read, buffer);
