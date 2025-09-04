@@ -26,7 +26,8 @@ run:
         -drive if=pflash,format=raw,readonly=on,file={{ovmf_prefix}}/share/OVMF/OvmfX64/OVMF_CODE.fd \
         -drive if=pflash,format=raw,file={{ovmf_prefix}}/share/OVMF/OvmfX64/OVMF_VARS.fd \
         -m 512M \
-        -drive format=raw,file=disk.img
+        -drive format=raw,file=disk.img \
+        -serial stdio
     
 clean:
     rm -rf out
