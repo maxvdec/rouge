@@ -88,3 +88,27 @@ pub const Serial = struct {
         return bytes_read;
     }
 };
+
+var serial_static: ?Serial = null;
+
+pub fn init(boot_services: *uefi.tables.BootServices) !void {
+    if (serial_static != null) return;
+    serial_static = try Serial.get(boot_services);
+}
+
+pub fn print(message: []const u8) void {
+    if (serial_static == null) return;
+    serial_static.?.write(message) catch {};
+}
+
+pub fn printFormatted(comptime message: []const u8, args: anytype, comptime max_length: usize) void {
+    const formatted = @import("../utils/format.zig").string(message, args, max_length);
+    print(&formatted);
+}
+
+pub fn get(boot_services: *uefi.tables.BootServices) !*Serial {
+    if (serial_static == null) {
+        try init(boot_services);
+    }
+    return &serial_static.?;
+}

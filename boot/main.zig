@@ -21,16 +21,8 @@ const format = @import("rouge").format;
 pub fn main() void {
     console.print("Hello, World!");
     const boot_services = uefi.system_table.boot_services.?;
-    var serial_out = serial.Serial.get(boot_services) catch |err| {
-        const result = format.string("Failed to get serial output: {}", .{err}, 100);
-        console.print(&result);
-        return;
-    };
+    serial.init(boot_services) catch {};
+    serial.print("Hello, World!\n");
 
-    serial_out.write("Hello from Serial!\n") catch |err| {
-        const result = format.string("Failed to write to serial: {}", .{err}, 100);
-        console.print(&result);
-        return;
-    };
     time.TimeDelay.fromSeconds(5).wait();
 }
