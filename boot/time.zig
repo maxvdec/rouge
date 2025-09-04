@@ -41,7 +41,7 @@ pub const TimeDelay = struct {
     /// Creates a new TimeDelay from seconds.
     pub fn fromSeconds(seconds: u64) TimeDelay {
         return TimeDelay{
-            .nanoseconds = seconds * 1_000_000_000,
+            .nanoseconds = seconds * 1000 * 1000,
         };
     }
 

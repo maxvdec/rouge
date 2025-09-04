@@ -47,4 +47,8 @@ pub fn main() void {
     }, graphics.Position{ .x = out.getSize().x, .y = out.getSize().y / 2 }, graphics.Color{ .r = 0, .g = 255, .b = 0, .a = 255 });
 
     time.TimeDelay.fromSeconds(5).wait();
+    out.destroy() catch {
+        console.printLine("Failed to clean up graphics resources.");
+    };
+    console.printLine("Exiting Boot Manager.");
 }

@@ -7,39 +7,63 @@
 // Copyright (c) 2025 Maxims Enterprise
 //
 
+//! Basic graphics functions for the UEFI application
+//! It provides functions to initialize graphics, set modes, and draw basic shapes.
+//! It uses the UEFI Graphics Output Protocol (GOP).
+//! This is essential for any graphical boot manager or OS loader.
+
 const std = @import("std");
 const console = @import("../output/console.zig");
 const uefi = std.os.uefi;
 const config = @import("config");
 
+/// A Graphics Mode supported by the Graphics Output Protocol
 pub const Mode = struct {
+    /// The mode ID.
     id: u32,
+    /// Information about the mode.
     info: *uefi.protocol.GraphicsOutput.Mode.Info,
+    /// A rating for the mode based on resolution and pixel format.
     rating: u32,
+    /// A CPU-friendly rating for the mode.
     cpu_rating: u32,
 };
 
+/// The different ways of selecting a graphics mode.
 pub const Capabilities = enum { highest, cpu_friendly, lowest, standard, configuration_defined };
 
+/// Represents a color in RGBA format.
 pub const Color = struct {
+    /// Red component.
     r: u8,
+    /// Green component.
     g: u8,
+    /// Blue component.
     b: u8,
+    /// Alpha component.
     a: u8,
 };
 
+/// Represents a position on the screen.
 pub const Position = struct {
+    /// X coordinate.
     x: u32,
+    /// Y coordinate.
     y: u32,
 };
 
+/// Main Graphics structure to manage the Graphics Output Protocol.
 pub const Graphics = struct {
+    /// The Graphics Output Protocol instance.
     graphicsOutput: *uefi.protocol.GraphicsOutput,
+    /// Available graphics modes.
     modes: []Mode,
+    /// The currently selected graphics mode.
     selected_mode: ?Mode,
 
     const Self = @This();
 
+    /// Initializes the Graphics Output Protocol.
     pub fn get() !Graphics {
         const boot_services = uefi.system_table.boot_services.?;
 
@@ -55,11 +79,13 @@ pub const Graphics = struct {
         }
     }
 
+    /// Cleans up allocated resources.
     pub fn destroy(self: *Self) !void {
         const boot_services = uefi.system_table.boot_services.?;
-        try boot_services.freePool(self.modes);
+        try boot_services.freePool(@ptrCast(self.modes));
     }
 
+    /// Queries and stores all available graphics modes.
     pub fn queryModes(self: *Self) void {
         const mode_count = self.graphicsOutput.mode.max_mode;
 
@@ -74,6 +100,7 @@ pub const Graphics = struct {
         }
     }
 
+    /// Selects the preferred graphics mode based on the given capabilities.
     pub fn selectPreferredMode(self: *Self, capabilities: Capabilities) !void {
         for (0..self.graphicsOutput.mode.max_mode) |i| {
             var mode = &self.modes[i];
@@ -182,6 +209,7 @@ pub const Graphics = struct {
         };
     }
 
+    /// Draws a pixel at the specified position with the given color.
     pub fn drawPixel(self: *Self, position: Position, color: Color) void {
         var fb: [*]u8 = @ptrFromInt(@as(usize, @intCast(self.graphicsOutput.mode.frame_buffer_base)));
         const pixels_per_scan_line = self.graphicsOutput.mode.info.pixels_per_scan_line;
@@ -206,6 +234,7 @@ pub const Graphics = struct {
         }
     }
 
+    /// Draws a line from start to end positions with the given color using Bresenham's algorithm.
     pub fn drawLine(self: *Self, start: Position, end: Position, color: Color) void {
         var x: i32 = @as(i32, @intCast(start.x));
         var y: i32 = @as(i32, @intCast(start.y));
@@ -233,6 +262,7 @@ pub const Graphics = struct {
         }
     }
 
+    /// Gets the current screen size.
     pub fn getSize(self: *Self) Position {
         return Position{
             .x = self.selected_mode.?.info.horizontal_resolution,
