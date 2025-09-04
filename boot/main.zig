@@ -14,7 +14,6 @@ const std = @import("std");
 const uefi = std.os.uefi;
 const console = @import("rouge").console;
 const time = @import("rouge").time;
-const serial = @import("rouge").serial;
 const format = @import("rouge").format;
 const graphics = @import("rouge").graphics;
 
@@ -29,7 +28,7 @@ pub fn main() void {
     console.printLine("Graphics Output Protocol found!");
     out.queryModes();
     console.printLine("Available Graphics Modes:");
-    out.selectPreferredMode(.standard) catch |err| {
+    out.selectPreferredMode(.configuration_defined) catch |err| {
         console.printFormatted("Error occurred when selecting graphics mode: {}\n", .{err}, 100);
         return;
     };

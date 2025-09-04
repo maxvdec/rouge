@@ -1,6 +1,7 @@
 
 ovmf_prefix := `brew --prefix ovmf`
-
+wanted_resolution := "x1024x768"
+zig_build := "zig build -Dresolution=" + wanted_resolution
 default: build
 
 pack:
@@ -14,11 +15,11 @@ pack:
     echo "Image Successfully Packaged"
 
 build:
-    zig build
+    {{zig_build}}
     just pack
 
 build-debug:
-    zig build -Doptimize=Debug
+    {{zig_build}} -Doptimize=Debug
     just pack
 
 test:
@@ -55,6 +56,6 @@ lint:
 
 check:
     zig fmt --check .
-    zig build lint
-    zig build test-lint
-    zig build test
+    {{zig_build}} lint
+    {{zig_build}} test-lint
+    {{zig_build}} test

@@ -10,6 +10,7 @@
 const std = @import("std");
 const console = @import("../output/console.zig");
 const uefi = std.os.uefi;
+const config = @import("config");
 
 pub const Mode = struct {
     id: u32,
@@ -18,7 +19,7 @@ pub const Mode = struct {
     cpu_rating: u32,
 };
 
-pub const Capabilities = enum { highest, cpu_friendly, lowest, standard };
+pub const Capabilities = enum { highest, cpu_friendly, lowest, standard, configuration_defined };
 
 pub const Color = struct {
     r: u8,
@@ -144,6 +145,24 @@ pub const Graphics = struct {
                     break;
                 } else if (mode.info.horizontal_resolution == 1280 and mode.info.vertical_resolution == 720) {
                     best_mode = mode;
+                }
+            }
+            if (best_mode == null) {
+                for (0..self.graphicsOutput.mode.max_mode) |i| {
+                    const mode = self.modes[i];
+                    if (best_mode == null or mode.rating > best_mode.?.rating) {
+                        best_mode = mode;
+                    }
+                }
+            }
+        } else if (capabilities == .configuration_defined) {
+            const desired_width = config.default_resolution.width;
+            const desired_height = config.default_resolution.height;
+            for (0..self.graphicsOutput.mode.max_mode) |i| {
+                const mode = self.modes[i];
+                if (mode.info.horizontal_resolution == desired_width and mode.info.vertical_resolution == desired_height) {
+                    best_mode = mode;
+                    break;
                 }
             }
             if (best_mode == null) {
