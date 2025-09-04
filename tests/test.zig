@@ -3,7 +3,7 @@ const testing = std.testing;
 const rouge = @import("rouge");
 
 test "Time Nanoseconds" {
-    try testing.expect(rouge.time.TimeDelay.fromSeconds(2).nanoseconds == 2_000_000_000);
+    try testing.expect(rouge.time.TimeDelay.fromSeconds(2).nanoseconds == 2 * 1000 * 1000);
 }
 
 test "UEFI String" {
