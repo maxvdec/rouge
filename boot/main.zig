@@ -33,9 +33,16 @@ pub fn main() void {
     var out = graphics.Graphics.get() catch {
         return;
     };
-    out.graphicsOutput.setMode(0) catch {
+    out.queryModes();
+    out.selectPreferredMode(.highest) catch |err| {
+        console.printFormatted("Error occurred when selecting graphics mode: {}\n", .{err}, 100);
         return;
     };
+
+    for (out.modes) |mode| {
+        console.printFormatted("Mode {}: {}x{} @ {} bpp\n", .{ mode.id, mode.info.resolution_horizontal, mode.info.resolution_vertical, mode.info.pixel_format }, 100);
+        console.printFormatted("    Score: {}, CPU Score: {}\n", .{ mode.rating, mode.cpu_rating }, 100);
+    }
 
     time.TimeDelay.fromSeconds(5).wait();
 }

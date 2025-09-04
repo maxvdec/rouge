@@ -36,6 +36,7 @@ pub const Graphics = struct {
         if (gop) |protocol| {
             return Graphics{
                 .graphicsOutput = protocol,
+                .modes = &[_]Mode{} ** @as(usize, protocol.mode.max_mode),
             };
         } else {
             return error.GraphicsOutputNotFound;
