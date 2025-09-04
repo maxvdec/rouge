@@ -97,6 +97,22 @@ pub fn string(comptime template: []const u8, args: anytype, comptime max_length:
                                 pos += 1;
                                 j += 1;
                             }
+                        } else if (@typeInfo(T) == .error_set) {
+                            const err_name = @errorName(arg); // returns the error as string
+                            var j: usize = 0;
+                            while (j < err_name.len and pos < buffer.len) {
+                                buffer[pos] = err_name[j];
+                                pos += 1;
+                                j += 1;
+                            }
+                        } else {
+                            const error_msg = "<UnsupportedType>";
+                            var j: usize = 0;
+                            while (j < error_msg.len and pos < buffer.len) {
+                                buffer[pos] = error_msg[j];
+                                pos += 1;
+                                j += 1;
+                            }
                         }
                         break;
                     }
