@@ -29,7 +29,7 @@ pub fn main() void {
     console.printLine("Graphics Output Protocol found!");
     out.queryModes();
     console.printLine("Available Graphics Modes:");
-    out.selectPreferredMode(.highest) catch |err| {
+    out.selectPreferredMode(.standard) catch |err| {
         console.printFormatted("Error occurred when selecting graphics mode: {}\n", .{err}, 100);
         return;
     };
@@ -40,14 +40,8 @@ pub fn main() void {
         console.printFormatted("Mode {}: {} x {} @ {} bpp\n", .{ mode.id, mode.info.horizontal_resolution, mode.info.vertical_resolution, mode.info.pixel_format }, 100);
         console.printFormatted("    Score: {}, CPU Score: {}\n", .{ mode.rating, mode.cpu_rating }, 100);
     }
-    console.printFormatted("Selected mode: {}", .{out.selected_mode.?.id}, 100);
+    console.printFormatted("Selected mode: {}\n", .{out.selected_mode.?.id}, 100);
 
-    console.clear();
-
-    out.drawPixel(graphics.Position{ .x = out.getSize().x / 2, .y = out.getSize().y / 2 }, graphics.Color{ .r = 255, .g = 0, .b = 0, .a = 255 });
-    console.print("Hello\n");
-    console.printFormatted("Size: {} x {}", .{ out.getSize().x, out.getSize().y }, 20);
-    console.printFormatted("Center is <x: {}, y: {}>", .{ out.getSize().x / 2, out.getSize().y / 2 }, 100);
     out.drawLine(graphics.Position{
         .x = 0,
         .y = out.getSize().y / 2,

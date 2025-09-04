@@ -18,11 +18,7 @@ pub const Mode = struct {
     cpu_rating: u32,
 };
 
-pub const Capabilities = enum {
-    highest,
-    cpu_friendly,
-    lowest,
-};
+pub const Capabilities = enum { highest, cpu_friendly, lowest, standard };
 
 pub const Color = struct {
     r: u8,
@@ -84,6 +80,21 @@ pub const Graphics = struct {
             mode.cpu_rating = 0;
             mode.rating += mode.info.horizontal_resolution * mode.info.vertical_resolution;
             mode.cpu_rating += mode.info.horizontal_resolution * mode.info.vertical_resolution;
+            const aspect = @as(f64, @floatFromInt(mode.info.horizontal_resolution)) / @as(f64, @floatFromInt(mode.info.vertical_resolution));
+            var horizontal_bias: f64 = 1.0;
+
+            if (aspect >= 2.0) {
+                horizontal_bias = 3.0;
+            } else if (aspect >= 16.0 / 9.0) {
+                horizontal_bias = 2.0;
+            } else if (aspect >= 4.0 / 3.0) {
+                horizontal_bias = 1.5;
+            } else {
+                horizontal_bias = 1.0; // nearly square
+            }
+
+            mode.rating = @intCast(@as(u32, @intFromFloat(@as(f64, @floatFromInt(mode.rating)) * horizontal_bias)));
+            mode.cpu_rating = @intCast(@as(u32, @intFromFloat(@as(f64, @floatFromInt(mode.cpu_rating)) * horizontal_bias)));
             switch (mode.info.pixel_format) {
                 .blue_green_red_reserved_8_bit_per_color, .red_green_blue_reserved_8_bit_per_color => {
                     mode.rating += 1000;
@@ -123,6 +134,24 @@ pub const Graphics = struct {
                 const mode = self.modes[i];
                 if (best_mode == null or mode.rating < best_mode.?.rating) {
                     best_mode = mode;
+                }
+            }
+        } else if (capabilities == .standard) {
+            for (0..self.graphicsOutput.mode.max_mode) |i| {
+                const mode = self.modes[i];
+                if (mode.info.horizontal_resolution == 1920 and mode.info.vertical_resolution == 1080) {
+                    best_mode = mode;
+                    break;
+                } else if (mode.info.horizontal_resolution == 1280 and mode.info.vertical_resolution == 720) {
+                    best_mode = mode;
+                }
+            }
+            if (best_mode == null) {
+                for (0..self.graphicsOutput.mode.max_mode) |i| {
+                    const mode = self.modes[i];
+                    if (best_mode == null or mode.rating > best_mode.?.rating) {
+                        best_mode = mode;
+                    }
                 }
             }
         }
@@ -187,8 +216,8 @@ pub const Graphics = struct {
 
     pub fn getSize(self: *Self) Position {
         return Position{
-            .x = self.graphicsOutput.mode.info.horizontal_resolution,
-            .y = self.graphicsOutput.mode.info.vertical_resolution,
+            .x = self.selected_mode.?.info.horizontal_resolution,
+            .y = self.selected_mode.?.info.vertical_resolution,
         };
     }
 };
