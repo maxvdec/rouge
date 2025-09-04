@@ -8,32 +8,28 @@
 //
 
 const std = @import("std");
+const console = @import("../output/console.zig");
 const uefi = std.os.uefi;
 
 pub const Volume = struct {
     root: *uefi.protocol.File,
-    name: []u16,
+    name: []u8,
 };
 
 pub fn listVolumes() ![]Volume {
     const boot_services = uefi.system_table.boot_services.?;
 
-    var handle_count: usize = 0;
-    const handles: ?[*]uefi.Handle = null;
-
-    var status = boot_services._locateHandle(uefi.tables.LocateSearchType.by_protocol, &uefi.protocol.SimpleFileSystem.guid, null, &handle_count, handles);
-    if (status != uefi.Status.success) {
+    const handles = try boot_services.locateHandleBuffer(.{ .by_protocol = &uefi.protocol.SimpleFileSystem.guid }) orelse {
         return error.LocateHandleFailed;
-    }
+    };
 
     var volumes: []Volume = undefined;
-    const volume_buf = try boot_services.allocatePool(.loader_data, @sizeOf(Volume) * handle_count);
+    const volume_buf = try boot_services.allocatePool(.loader_data, @sizeOf(Volume) * handles.len);
     @memset(volume_buf, 0);
-    defer boot_services.freePool(volume_buf.ptr) catch {};
-    volumes = @as([*]Volume, @ptrCast(volume_buf))[0..handle_count];
+    volumes = @as([*]Volume, @ptrCast(volume_buf))[0..handles.len];
 
-    for (0..handle_count) |i| {
-        const handle = handles.?[i];
+    for (0..handles.len) |i| {
+        const handle = handles[i];
         var fs = try boot_services.handleProtocol(uefi.protocol.SimpleFileSystem, handle);
         if (fs == null) {
             return error.HandleProtocolFailed;
@@ -41,15 +37,23 @@ pub fn listVolumes() ![]Volume {
 
         var root = try fs.?.openVolume();
 
-        var buf: [512]u8 = undefined;
-        status = root.getInfo(&uefi.protocol.File.Info, &buf);
+        var initial_buf: [1]u8 = [_]u8{0};
+        var recorded_size: usize = 0;
+        var status = root._get_info(root, &uefi.protocol.File.Info.VolumeLabel.guid, &recorded_size, &initial_buf);
+
+        const correct_size = recorded_size;
+        const buf_contents = try boot_services.allocatePool(.loader_data, correct_size);
+        @memset(buf_contents, 0);
+        var buf = @as([*]u8, @ptrCast(buf_contents));
+        status = root._get_info(root, &uefi.protocol.File.Info.VolumeLabel.guid, &recorded_size, buf);
+
         if (status != uefi.Status.success) {
             return error.GetInfoFailed;
         }
 
         volumes[i] = Volume{
             .root = root,
-            .name = buf[0..].ptrCast(),
+            .name = buf[0..recorded_size],
         };
     }
 

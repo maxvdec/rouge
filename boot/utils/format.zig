@@ -71,7 +71,7 @@ pub fn string(comptime template: []const u8, args: anytype, comptime max_length:
                 inline for (args, 0..) |arg, idx| {
                     if (idx == arg_index) {
                         const T = @TypeOf(arg);
-                        if (T == []const u8) {
+                        if (T == []const u8 or T == [*:0]const u8 or T == []u8 or T == [*:0]u8) {
                             // String argument
                             var j: usize = 0;
                             while (j < arg.len and pos < buffer.len) {

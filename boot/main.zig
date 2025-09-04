@@ -27,8 +27,9 @@ pub fn main() void {
         console.printFormatted("Failed to list volumes: {}\n", .{err}, 50);
         while (true) {}
     };
+    console.printFormatted("Volumes has length {}", .{vols.len}, 50);
     for (vols) |vol| {
-        _ = vol;
+        console.printFormatted("Volume {}\n", .{vol.name}, 200);
     }
     time.TimeDelay.fromSeconds(10).wait();
 }
