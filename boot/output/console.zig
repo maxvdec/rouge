@@ -40,21 +40,34 @@ pub fn stringToUefi(str: [*:0]const u8) [*:0]u16 {
 /// Prints a message to the UEFI console.
 pub fn print(message: [*:0]const u8) void {
     const con_out = uefi.system_table.con_out.?;
-    var pos = std.mem.len(message);
-    var trim_back: usize = 0;
-    while (pos > 0) : (pos -= 1) {
-        if (message[pos - 1] == '\n' or message[pos - 1] == '\r' or message[pos - 1] == ' ') {
-            trim_back += 1;
+
+    var u16_buffer: [1024]u16 = undefined; // Adjust size as needed
+    var out_len: usize = 0;
+
+    const msg_len = std.mem.len(message); // get length of the slice
+
+    for (0..msg_len) |i| {
+        const c = message[i];
+        if (c == '\n') {
+            u16_buffer[out_len] = '\r';
+            out_len += 1;
+            u16_buffer[out_len] = '\n';
+            out_len += 1;
         } else {
-            break;
+            u16_buffer[out_len] = @as(u16, c);
+            out_len += 1;
         }
     }
-    for (0..std.mem.len(message) - trim_back) |i| {
-        var buffer: [2]u16 = undefined;
-        buffer[0] = @as(u16, message[i]);
-        buffer[1] = 0; // Null-terminate
-        _ = con_out.outputString(@ptrCast(&buffer)) catch {};
-    }
+
+    u16_buffer[out_len] = 0; // Null-terminate
+
+    _ = con_out.outputString(@ptrCast(&u16_buffer)) catch {};
+}
+
+/// Prints a message followed by a newline to the UEFI console.
+pub fn printLine(message: [*:0]const u8) void {
+    print(message);
+    print("\n");
 }
 
 /// Prints a formatted message to the UEFI console.

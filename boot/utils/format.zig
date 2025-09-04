@@ -32,6 +32,7 @@ pub fn hexadecimal(value: u64, comptime max_length: usize) [max_length:0]u8 {
 /// Formats a u64 value as a decimal string.
 pub fn decimal(value: u64, comptime max_length: usize) [max_length:0]u8 {
     var buffer: [max_length:0]u8 = undefined;
+    for (0..max_length) |i| buffer[i] = 0;
     if (value == 0) {
         buffer[0] = '0';
         return buffer;
@@ -75,6 +76,24 @@ pub fn string(comptime template: []const u8, args: anytype, comptime max_length:
                             var j: usize = 0;
                             while (j < arg.len and pos < buffer.len) {
                                 buffer[pos] = arg[j];
+                                pos += 1;
+                                j += 1;
+                            }
+                        } else if (T == u64 or T == u32 or T == usize) {
+                            const max_dec_length = if (T == u64) 20 else if (T == u32) 10 else 10;
+                            // Decimal argument
+                            const dec_str = decimal(@as(u64, arg), max_dec_length);
+                            var j: usize = 0;
+                            while (j < max_dec_length and dec_str[j] != 0 and pos < buffer.len) {
+                                buffer[pos] = dec_str[j];
+                                pos += 1;
+                                j += 1;
+                            }
+                        } else if (@typeInfo(T) == .@"enum") {
+                            const enum_name = std.enums.tagName(T, arg) orelse "Unknown";
+                            var j: usize = 0;
+                            while (j < enum_name.len and pos < buffer.len) {
+                                buffer[pos] = enum_name[j];
                                 pos += 1;
                                 j += 1;
                             }
