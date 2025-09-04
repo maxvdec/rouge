@@ -57,6 +57,12 @@ pub fn print(message: [*:0]const u8) void {
     }
 }
 
+/// Prints a formatted message to the UEFI console.
+pub fn printFormatted(message: [*:0]const u8, args: anytype, comptime max_length: usize) void {
+    const formatted = @import("utils/format.zig").string(message, args, max_length);
+    print(&formatted);
+}
+
 /// Resets the UEFI console.
 pub fn reset() void {
     const con_out = uefi.system_table.con_out.?;
