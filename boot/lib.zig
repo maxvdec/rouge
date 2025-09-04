@@ -13,3 +13,4 @@ pub const time = @import("time.zig");
 pub const console = @import("output/console.zig");
 pub const io = @import("utils/io.zig");
 pub const serial = @import("output/serial.zig");
+pub const format = @import("utils/format.zig");
