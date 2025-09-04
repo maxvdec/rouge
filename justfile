@@ -1,8 +1,10 @@
 
 ovmf_prefix := `brew --prefix ovmf`
-
+wanted_resolution := "x1024x768"
+zig_build := "zig build -Dresolution=" + wanted_resolution
 default: build
 
+[macos]
 pack:
     mkdir -p out/EFI/BOOT
     cp zig-out/bin/rouge.efi out/EFI/BOOT/BOOTX64.EFI
@@ -11,14 +13,22 @@ pack:
     rm -rf /Volumes/ROUGE/*
     cp -r out/* /Volumes/ROUGE
     hdiutil detach /Volumes/ROUGE
-    echo "Image Successfully Packaged"
+    @echo "Image Successfully Packaged"
+
+[linux]
+pack:
+    mkdir -p out/EFI/BOOT
+    cp zig-out/bin/rouge.efi out/EFI/BOOT/BOOTX64
+    if [ ! -f "disk.img" ]; then dd if=/dev/zero of=disk.img bs=1M count=64 && mkfs.vfat disk.img && mmd -i disk.img ::/EFI ::/EFI/BOOT && mcopy -i disk.img out/EFI/BOOT/BOOTX64.EFI ::/EFI/BOOT/BOOTX64.EFI; fi
+    rm -rf out
+    @echo "Image Successfully Packaged"
 
 build:
-    zig build
+    {{zig_build}}
     just pack
 
 build-debug:
-    zig build -Doptimize=Debug
+    {{zig_build}} -Doptimize=Debug
     just pack
 
 test:
@@ -31,9 +41,9 @@ debug:
         -drive if=pflash,format=raw,file={{ovmf_prefix}}/share/OVMF/OvmfX64/OVMF_VARS.fd \
         -m 512M \
         -drive format=raw,file=disk.img \
-        -serial stdio \
         -gdb tcp::1234 \
-        -S
+        -S \
+        -serial stdio
 
 run:
     just build
@@ -55,6 +65,6 @@ lint:
 
 check:
     zig fmt --check .
-    zig build lint
-    zig build test-lint
-    zig build test
+    {{zig_build}} lint
+    {{zig_build}} test-lint
+    {{zig_build}} test
