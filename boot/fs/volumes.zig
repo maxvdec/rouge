@@ -14,6 +14,7 @@ const uefi = std.os.uefi;
 pub const Volume = struct {
     root: *uefi.protocol.File,
     name: []u8,
+    handle: uefi.Handle,
 };
 
 pub fn listVolumes() ![]Volume {
@@ -23,39 +24,90 @@ pub fn listVolumes() ![]Volume {
         return error.LocateHandleFailed;
     };
 
-    var volumes: []Volume = undefined;
+    console.printFormatted("Found {} file system handles\n", .{handles.len}, 50);
+
     const volume_buf = try boot_services.allocatePool(.loader_data, @sizeOf(Volume) * handles.len);
     @memset(volume_buf, 0);
-    volumes = @as([*]Volume, @ptrCast(volume_buf))[0..handles.len];
+    var volumes = @as([*]Volume, @ptrCast(volume_buf))[0..handles.len];
+
+    var valid_volumes: usize = 0;
 
     for (0..handles.len) |i| {
         const handle = handles[i];
-        var fs = try boot_services.handleProtocol(uefi.protocol.SimpleFileSystem, handle);
-        if (fs == null) {
-            return error.HandleProtocolFailed;
-        }
+        console.printFormatted("Processing handle {}\n", .{i}, 50);
 
-        var root = try fs.?.openVolume();
-
-        var initial_buf: [1]u8 = [_]u8{0};
-        var recorded_size: usize = 0;
-        var status = root._get_info(root, &uefi.protocol.File.Info.VolumeLabel.guid, &recorded_size, &initial_buf);
-
-        const correct_size = recorded_size;
-        const buf_contents = try boot_services.allocatePool(.loader_data, correct_size);
-        @memset(buf_contents, 0);
-        var buf = @as([*]u8, @ptrCast(buf_contents));
-        status = root._get_info(root, &uefi.protocol.File.Info.VolumeLabel.guid, &recorded_size, buf);
-
-        if (status != uefi.Status.success) {
-            return error.GetInfoFailed;
-        }
-
-        volumes[i] = Volume{
-            .root = root,
-            .name = buf[0..recorded_size],
+        var fs = boot_services.handleProtocol(uefi.protocol.SimpleFileSystem, handle) catch |err| {
+            console.printFormatted("Failed to get SimpleFileSystem protocol for handle {}: {}\n", .{ i, err }, 100);
+            continue;
         };
+
+        if (fs == null) {
+            console.printFormatted("SimpleFileSystem protocol is null for handle {}\n", .{i}, 50);
+            continue;
+        }
+
+        const root = fs.?.openVolume() catch |err| {
+            console.printFormatted("Failed to open volume for handle {}: {}\n", .{ i, err }, 100);
+            continue;
+        };
+
+        const volume_name = try getVolumeLabel(root, boot_services);
+
+        volumes[valid_volumes] = Volume{
+            .root = root,
+            .name = volume_name,
+            .handle = handle,
+        };
+
+        console.printFormatted("Added volume {}: '{}'\n", .{ valid_volumes, volume_name }, 200);
+        valid_volumes += 1;
     }
 
-    return volumes;
+    return volumes[0..valid_volumes];
+}
+
+fn getVolumeLabel(root: *uefi.protocol.File, boot_services: *uefi.tables.BootServices) ![]u8 {
+    var buffer_size: usize = 0;
+    var status = root._get_info(root, &uefi.protocol.File.Info.VolumeLabel.guid, &buffer_size, null);
+
+    if (status != uefi.Status.buffer_too_small and status != uefi.Status.success) {
+        return error.GetInfoFailed;
+    }
+
+    if (buffer_size == 0) {
+        const empty_name = try boot_services.allocatePool(.loader_data, 1);
+        const name_slice = @as([*]u8, @ptrCast(empty_name))[0..1];
+        name_slice[0] = 0;
+        return name_slice[0..0];
+    }
+
+    const label_buffer = try boot_services.allocatePool(.loader_data, buffer_size);
+    @memset(label_buffer, 0);
+
+    status = root._get_info(root, &uefi.protocol.File.Info.VolumeLabel.guid, &buffer_size, label_buffer.ptr);
+
+    if (status != uefi.Status.success) {
+        return error.GetInfoFailed;
+    }
+
+    const label_ptr = @as([*]u16, @ptrCast(@alignCast(label_buffer)));
+
+    var utf16_len: usize = 0;
+    while (utf16_len < buffer_size / 2 and label_ptr[utf16_len] != 0) {
+        utf16_len += 1;
+    }
+
+    const utf8_buffer = try boot_services.allocatePool(.loader_data, utf16_len + 1);
+    const utf8_slice = @as([*]u8, @ptrCast(utf8_buffer))[0 .. utf16_len + 1];
+    @memset(utf8_slice, 0);
+
+    for (0..utf16_len) |j| {
+        if (label_ptr[j] < 128) {
+            utf8_slice[j] = @as(u8, @truncate(label_ptr[j]));
+        } else {
+            utf8_slice[j] = '?';
+        }
+    }
+
+    return utf8_slice[0..utf16_len];
 }
