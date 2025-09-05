@@ -16,7 +16,7 @@ const console = @import("rouge").console;
 const time = @import("rouge").time;
 const format = @import("rouge").format;
 const graphics = @import("rouge").graphics;
-const volumes = @import("rouge").volumes;
+const volumes = @import("rouge").fs.volumes;
 
 /// Main entry point for the Boot Manager
 pub fn main() void {

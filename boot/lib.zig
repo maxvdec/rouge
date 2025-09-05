@@ -14,4 +14,7 @@ pub const console = @import("output/console.zig");
 pub const io = @import("utils/io.zig");
 pub const format = @import("utils/format.zig");
 pub const graphics = @import("graphics/graphics.zig");
-pub const volumes = @import("fs/volumes.zig");
+/// File system related utilities
+pub const fs = struct {
+    pub const volumes = @import("fs/volumes.zig");
+};

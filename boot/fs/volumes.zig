@@ -7,16 +7,27 @@
 // Copyright (c) 2025 Maxims Enterprise
 //
 
+//! Volume management for the UEFI application
+//! This module provides functions to list and manage volumes in the UEFI environment.
+//! It interacts with UEFI protocols to retrieve volume information.
+//! It also provides error handling for volume operations.
+//! The module is designed to be used in the boot manager context.
+
 const std = @import("std");
 const console = @import("../output/console.zig");
 const uefi = std.os.uefi;
 
+/// A Volume represents a mounted file system volume in UEFI.
 pub const Volume = struct {
+    /// The root directory of the volume.
     root: *uefi.protocol.File,
+    /// The name of the volume.
     name: []u8,
+    /// The UEFI handle associated with the volume.
     handle: uefi.Handle,
 };
 
+/// Function that lists all available volumes in the UEFI environment.
 pub fn listVolumes() ![]Volume {
     const boot_services = uefi.system_table.boot_services.?;
 
@@ -66,6 +77,7 @@ pub fn listVolumes() ![]Volume {
     return volumes[0..valid_volumes];
 }
 
+/// Retrieves the volume label for a given root directory.
 fn getVolumeLabel(root: *uefi.protocol.File, boot_services: *uefi.tables.BootServices) ![]u8 {
     var buffer_size: usize = 0;
     var status = root._get_info(root, &uefi.protocol.File.Info.VolumeLabel.guid, &buffer_size, null);
