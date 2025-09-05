@@ -16,6 +16,7 @@
 const std = @import("std");
 const console = @import("../output/console.zig");
 const uefi = std.os.uefi;
+const file = @import("filesystem.zig");
 
 /// A Volume represents a mounted file system volume in UEFI.
 pub const Volume = struct {
@@ -25,6 +26,14 @@ pub const Volume = struct {
     name: []u8,
     /// The UEFI handle associated with the volume.
     handle: uefi.Handle,
+
+    /// Retrieves the root directory of the volume.
+    pub fn getRoot(self: *const Volume) file.Directory {
+        return file.Directory{
+            .handle = self.root,
+            .info = undefined,
+        };
+    }
 };
 
 /// Function that lists all available volumes in the UEFI environment.

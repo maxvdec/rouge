@@ -31,5 +31,13 @@ pub fn main() void {
     for (vols) |vol| {
         console.printFormatted("Volume {}\n", .{vol.name}, 200);
     }
+    console.print("\n\n");
+    const files = vols[0].getRoot().list() catch |err| {
+        console.printFormatted("Failed to list root directory: {}\n", .{err}, 50);
+        while (true) {}
+    };
+    for (files) |file| {
+        console.printFormatted("File {}\n", .{file.name}, 200);
+    }
     time.TimeDelay.fromSeconds(10).wait();
 }
