@@ -71,7 +71,7 @@ pub fn string(comptime template: []const u8, args: anytype, comptime max_length:
                 inline for (args, 0..) |arg, idx| {
                     if (idx == arg_index) {
                         const T = @TypeOf(arg);
-                        if (T == []const u8) {
+                        if (T == []const u8 or T == [*:0]const u8 or T == []u8 or T == [*:0]u8) {
                             // String argument
                             var j: usize = 0;
                             while (j < arg.len and pos < buffer.len) {
@@ -94,6 +94,22 @@ pub fn string(comptime template: []const u8, args: anytype, comptime max_length:
                             var j: usize = 0;
                             while (j < enum_name.len and pos < buffer.len) {
                                 buffer[pos] = enum_name[j];
+                                pos += 1;
+                                j += 1;
+                            }
+                        } else if (@typeInfo(T) == .error_set) {
+                            const err_name = @errorName(arg); // returns the error as string
+                            var j: usize = 0;
+                            while (j < err_name.len and pos < buffer.len) {
+                                buffer[pos] = err_name[j];
+                                pos += 1;
+                                j += 1;
+                            }
+                        } else {
+                            const error_msg = "<UnsupportedType>";
+                            var j: usize = 0;
+                            while (j < error_msg.len and pos < buffer.len) {
+                                buffer[pos] = error_msg[j];
                                 pos += 1;
                                 j += 1;
                             }
